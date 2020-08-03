@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: f300070bd5181b3f0f8ff91f2bbf4b79600095e6ebb5e00b4a8ab0e2788e54a6
+-- hash: 996aa7cf30ab87b035a2f1aec12ede3e8430b2791113413ae2fd43b844aa49f2
 
 name:           expressions-compiler
 version:        0.1.0.0
@@ -27,6 +27,7 @@ source-repository head
 
 library
   exposed-modules:
+      Compiler
       Lib
       Machine
       Parser
