@@ -20,6 +20,8 @@ execute (x:y:xs) (op:ops) = case op of
                               DIV -> execute (x `div` y : xs) ops
                               ADD -> execute (x + y : xs) ops
                               SUB -> execute (x - y : xs) ops
+                              NEG -> execute ((-x) : y : xs) ops
                               _   -> Nothing
+execute (x:xs) (NEG:ops) = execute ((-x) : xs) ops
 execute _ _ = Nothing
 
