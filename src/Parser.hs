@@ -6,11 +6,11 @@ import Text.ParserCombinators.Parsec.Expr
 import Text.ParserCombinators.Parsec.Language
 import qualified Text.ParserCombinators.Parsec.Token as Token
 
-data Expr = Mult Expr Expr
-          | Div Expr Expr
-          | Add Expr Expr
-          | Sub Expr Expr
-          | Neg Expr
+data Expr = Mult {e1 :: Expr, e2 :: Expr}
+          | Div  {e1 :: Expr, e2 :: Expr}
+          | Add  {e1 :: Expr, e2 :: Expr}
+          | Sub  {e1 :: Expr, e2 :: Expr}
+          | Neg  {e1 :: Expr}
           | Num Integer
           deriving Show
 
