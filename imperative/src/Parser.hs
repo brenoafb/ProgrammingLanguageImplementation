@@ -6,7 +6,7 @@ import Text.ParserCombinators.Parsec.Expr
 import Text.ParserCombinators.Parsec.Language
 import qualified Text.ParserCombinators.Parsec.Token as Token
 
-data Expr = Num Integer
+data Expr = Num Int
           | Var String
           | Neg Expr
           | Add {e1 :: Expr, e2 :: Expr}
@@ -43,7 +43,7 @@ identifier = Token.identifier lexer
 reserved = Token.reserved lexer
 reservedOp = Token.reservedOp lexer
 parens = Token.parens lexer
-integer = Token.integer lexer
+int = fromIntegral <$> Token.integer lexer
 semi = Token.semi lexer
 whiteSpace = Token.whiteSpace lexer
 braces = Token.braces lexer
@@ -101,7 +101,7 @@ operators = [ [Prefix (reservedOp "-" >> return Neg)]
 
 term = parens expr
      <|>  Var <$> identifier
-     <|> Num <$> integer
+     <|> Num <$> int
 
 parseString :: String -> Stmt
 parseString str = case parse languageParser "" str of
