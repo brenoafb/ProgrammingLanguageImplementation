@@ -7,6 +7,7 @@ import qualified Data.Map as Map
 
 type Env = Map.Map String Int
 
+-- note that variables are not lexically scoped inside blocks
 exec :: Stmt -> State Env Env
 exec stmt = case stmt of
               Assignment var expr -> do
