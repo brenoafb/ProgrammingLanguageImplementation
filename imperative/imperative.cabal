@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 983ac9e0d75c92a40f10b443ef1fa658cb704635fe86904527646df6914850ab
+-- hash: 5e92909f43205f820950f9fcca9664b9a0bdfe962b4563f049413f79058a5422
 
 name:           imperative
 version:        0.1.0.0
@@ -27,8 +27,10 @@ source-repository head
 
 library
   exposed-modules:
+      Compiler
       Interpreter
       Lib
+      Machine
       Parser
   other-modules:
       Paths_imperative
