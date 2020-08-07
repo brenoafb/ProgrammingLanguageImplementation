@@ -21,6 +21,7 @@ data Stmt = Assignment String Expr
           | IfElse Expr Stmt Stmt
           | Block [Stmt]
           | While Expr Stmt
+          | FunDec String [String] Stmt
           | Return Expr
           deriving Show
 
@@ -53,12 +54,12 @@ whiteSpace = Token.whiteSpace lexer
 braces = Token.braces lexer
 comma = Token.comma lexer
 
-languageParser :: Parser Stmt
-languageParser = whiteSpace >> statement
+languageParser :: Parser [Stmt]
+languageParser = whiteSpace >> many funDec
 
 statement :: Parser Stmt
 statement = block <|> assignment <|> ifElseStmt
-          <|> ifStmt <|> while <|> returnStmt
+          <|> ifStmt <|> while <|> funDec <|> returnStmt
 
 block :: Parser Stmt
 block = Block <$> braces (many statement)
@@ -94,6 +95,15 @@ while = do
   body <- statement
   return $ While cond body
 
+funDec :: Parser Stmt
+funDec = do
+  reserved "func"
+  name <- identifier
+  args <- parens (identifier `sepBy` comma)
+  body <- statement
+  return $ FunDec name args body
+
+
 returnStmt :: Parser Stmt
 returnStmt = do
   reserved "return"
@@ -102,7 +112,7 @@ returnStmt = do
   return $ Return e
 
 expr :: Parser Expr
-expr = funCall <|> buildExpressionParser operators term
+expr = try funCall <|> buildExpressionParser operators term
 
 funCall :: Parser Expr
 funCall = do
@@ -121,7 +131,7 @@ term = parens expr
      <|>  Var <$> identifier
      <|> Num <$> int
 
-parseStr :: String -> Stmt
+parseStr :: String -> [Stmt]
 parseStr str = case parse languageParser "" str of
                  Left e -> error $ show e
                  Right r -> r
