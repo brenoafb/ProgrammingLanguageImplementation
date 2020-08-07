@@ -12,6 +12,9 @@ import qualified Data.Map as Map
 -- a variable 'x' appearing in any scope as the same variable.
 type VarTable = Map.Map String Int
 
+compile' :: Stmt -> [OP]
+compile' stmt = runReader (compile stmt) (buildVarTable stmt) ++ [HALT]
+
 compile :: Stmt -> Reader VarTable [OP]
 compile s = case s of
               Assignment var expr -> do
@@ -19,10 +22,23 @@ compile s = case s of
                 t <- ask
                 let Just i = Map.lookup var t -- warning: assumes vartable contains variable
                 return $ c ++ [STORE i]
-              If cond conseq -> undefined
-              IfElse cond conseq alt -> undefined
-              Block stmts -> undefined
-              While cond body -> undefined
+              If cond conseq -> do
+                cTest <- compileExpr cond
+                cBody <- compile conseq
+                return $ cTest ++ [BZ (length cBody)] ++ cBody -- watch out for off-by-one error
+              IfElse cond conseq alt -> do
+                cTest <- compileExpr cond
+                cBody <- compile conseq
+                cAlt <- compile alt
+                return $ cTest ++ [BZ (length cBody)] ++ cBody ++ cAlt-- watch out for off-by-one error
+              While cond body -> do
+                cTest <- compileExpr cond
+                cBody <- compile body
+                let d1 = 2 + length cBody
+                    d2 = negate $ 1 + length cBody + length cTest  -- not sure if this is right
+                return $ cTest ++ [BZ d1] ++ cBody ++ [GOTO d2]
+              Block [] -> return []
+              Block (stmt:stmts) -> (++) <$> compile stmt <*> compile (Block stmts)
 
 compileExpr :: Expr -> Reader VarTable [OP]
 compileExpr e = case e of
