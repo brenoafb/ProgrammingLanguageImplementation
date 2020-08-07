@@ -32,7 +32,12 @@ exec stmt = case stmt of
                 modify (execState (exec stmt))
                 exec (Block stmts)
               Block [] -> get
-              While cond body -> undefined
+              While cond body -> do
+                env <- get
+                let test = runReader (eval cond) env
+                if test /= 0
+                   then exec $ Block [body, While cond body]
+                   else return env
 
 eval :: Expr -> Reader Env Int
 eval expr = case expr of

@@ -53,7 +53,7 @@ languageParser :: Parser Stmt
 languageParser = whiteSpace >> statement
 
 statement :: Parser Stmt
-statement = block <|> assignment <|> try ifElseStmt <|> ifStmt <|> while
+statement = block <|> assignment <|> ifElseStmt <|> ifStmt <|> while
 
 block :: Parser Stmt
 block = Block <$> braces (many statement)
@@ -103,7 +103,7 @@ term = parens expr
      <|>  Var <$> identifier
      <|> Num <$> int
 
-parseString :: String -> Stmt
-parseString str = case parse languageParser "" str of
-                    Left e -> error $ show e
-                    Right r -> r
+parseStr :: String -> Stmt
+parseStr str = case parse languageParser "" str of
+                 Left e -> error $ show e
+                 Right r -> r
