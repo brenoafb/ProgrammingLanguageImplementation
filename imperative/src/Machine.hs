@@ -9,6 +9,7 @@ data OP = PUSH Int     -- push integer onto stack
         | STORE Index  -- store top of stack in register at index
         | GOTO Index   -- goto index unconditionally
         | BZ Index     -- branch if top of stack is zero
+        | HALT
         | ADD
         | SUB
         | MUL
@@ -33,11 +34,15 @@ setRegister r i x = r1 ++ (x : tail r2)
   where (r1,r2) = splitAt i r
 
 execute :: Machine -> [OP] -> Machine
-execute = foldl executeSingle
+execute m [] = m
+execute m ops = case ops !! getPointer m of
+                  HALT -> m
+                  op   -> execute (executeSingle m op) ops
 
 -- highly repetitive code ahead...
 executeSingle :: Machine -> OP -> Machine
 executeSingle m op = case op of
+  HALT -> m
   PUSH x -> Machine p s' r
     where s' = x : getStack m
           r  = getRegisters m
@@ -51,13 +56,14 @@ executeSingle m op = case op of
     where r' = setRegister (getRegisters m) i x
           (x:xs) = getStack m
           p  = 1 + getPointer m
-  GOTO i -> Machine i s r
+  GOTO i -> Machine p s r
     where r = getRegisters m
           s = getStack m
+          p = i + getPointer m
   BZ i -> Machine p xs r
     where r = getRegisters m
           x:xs = getStack m
-          p = if x == 0 then i else getPointer m
+          p = if x == 0 then i + getPointer m else 1 + getPointer m
   ADD -> Machine p s' r
     where r = getRegisters m
           (x:y:xs) = getStack m
