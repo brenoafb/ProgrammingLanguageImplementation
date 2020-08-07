@@ -1,0 +1,9 @@
+func function() {
+  return 1024;
+}
+
+func main() {
+  x = 512;
+  y = function();
+  z = y - x;
+}
