@@ -95,13 +95,20 @@ while = do
   return $ While cond body
 
 returnStmt :: Parser Stmt
-returnStmt = undefined
+returnStmt = do
+  reserved "return"
+  e <- expr
+  semi
+  return $ Return e
 
 expr :: Parser Expr
 expr = funCall <|> buildExpressionParser operators term
 
 funCall :: Parser Expr
-funCall = undefined
+funCall = do
+  funName <- identifier
+  args <- parens (sepBy expr comma)
+  return $ FunCall funName args
 
 operators = [ [Prefix (reservedOp "-" >> return Neg)]
             , [Infix  (reservedOp "*" >> return Mult) AssocLeft,
