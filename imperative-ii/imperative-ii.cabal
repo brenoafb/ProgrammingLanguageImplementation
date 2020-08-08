@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 93c310762b21502ed982af76ca17e3e6b45d4dbe61bff5587ae373a362b88b73
+-- hash: d1cf1fb7a2369f8986b8a7f121160ac2ebea0cc911e6fca69abc7133f0222b9b
 
 name:           imperative-ii
 version:        0.1.0.0
@@ -27,6 +27,7 @@ source-repository head
 
 library
   exposed-modules:
+      Interpreter
       Lib
       Parser
   other-modules:

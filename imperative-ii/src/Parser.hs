@@ -6,6 +6,10 @@ import Text.ParserCombinators.Parsec.Expr
 import Text.ParserCombinators.Parsec.Language
 import qualified Text.ParserCombinators.Parsec.Token as Token
 
+type Program = [Function]
+data Function = Function String [String] Stmt
+  deriving Show
+
 data Expr = Num Int
           | Var String
           | Neg Expr
@@ -21,7 +25,6 @@ data Stmt = Assignment String Expr
           | IfElse Expr Stmt Stmt
           | Block [Stmt]
           | While Expr Stmt
-          | FunDec String [String] Stmt
           | Return Expr
           deriving Show
 
@@ -54,12 +57,20 @@ whiteSpace = Token.whiteSpace lexer
 braces = Token.braces lexer
 comma = Token.comma lexer
 
-languageParser :: Parser [Stmt]
-languageParser = whiteSpace >> many funDec
+program :: Parser Program
+program = whiteSpace >> many function
+
+function :: Parser Function
+function = do
+  reserved "func"
+  name <- identifier
+  args <- parens (identifier `sepBy` comma)
+  body <- statement
+  return $ Function name args body
 
 statement :: Parser Stmt
 statement = block <|> assignment <|> ifElseStmt
-          <|> ifStmt <|> while <|> funDec <|> returnStmt
+          <|> ifStmt <|> while <|>  returnStmt
 
 block :: Parser Stmt
 block = Block <$> braces (many statement)
@@ -95,15 +106,6 @@ while = do
   body <- statement
   return $ While cond body
 
-funDec :: Parser Stmt
-funDec = do
-  reserved "func"
-  name <- identifier
-  args <- parens (identifier `sepBy` comma)
-  body <- statement
-  return $ FunDec name args body
-
-
 returnStmt :: Parser Stmt
 returnStmt = do
   reserved "return"
@@ -131,7 +133,7 @@ term = parens expr
      <|>  Var <$> identifier
      <|> Num <$> int
 
-parseStr :: String -> [Stmt]
-parseStr str = case parse languageParser "" str of
+parseStr :: String -> Program
+parseStr str = case parse program "" str of
                  Left e -> error $ show e
                  Right r -> r
