@@ -1,6 +1,20 @@
 module Main where
 
-import Lib
+import Parser
+import Interpreter
+
+import System.Environment
+import Control.Monad.Reader
+import Control.Monad.State
+import qualified Data.Map as Map
 
 main :: IO ()
-main = someFunc
+main = do
+  args <- getArgs
+  if not $ null args
+     then do
+       code <- readFile $ head args
+       let program = parseStr code
+           result = exec program
+       print result
+       else return ()

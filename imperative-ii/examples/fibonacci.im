@@ -5,6 +5,7 @@ func fibonacci(n) {
     tmp = a + b;
     a = b;
     b = tmp;
+    n = n - 1;
   }
 
   return a; // or is it b?

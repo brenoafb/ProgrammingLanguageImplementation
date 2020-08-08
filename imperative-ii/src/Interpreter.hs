@@ -9,43 +9,65 @@ import qualified Data.Map as Map
 type Frame = Map.Map String Int
 type Env = [Frame]
 
-exec :: Stmt -> State Env Env
-exec stmt = case stmt of
+type Eval a = ReaderT Program (State Env) a
+
+exec :: Program -> Env
+exec functions =
+  let (Function _ _ body) = head $ filter (\(Function n _ _) -> n == "main") functions
+      env  = [Map.empty]
+  in execState (runReaderT (execStmt body) functions) env
+
+execStmt :: Stmt -> Eval Env
+execStmt stmt = case stmt of
               Assignment var expr -> do
-                env <- get
-                let result = runReader (eval expr) env
+                result <- eval expr
                 modify (update var result)
                 get
               If cond conseq -> do
-                env <- get
-                let test = runReader (eval cond) env
+                test <- eval cond
                 if test /= 0
-                   then exec conseq
-                   else return env
+                   then execStmt conseq
+                   else get
               IfElse cond conseq alt -> do
-                env <- get
-                let test = runReader (eval cond) env
+                test <- eval cond
                 if test /= 0
-                   then exec conseq
-                   else exec alt
+                   then execStmt conseq
+                   else execStmt alt
               Block (stmt:stmts) -> do
                 env <- get
-                modify (execState (exec stmt))
-                exec (Block stmts)
+                execStmt stmt
+                execStmt (Block stmts)
               Block [] -> get
               While cond body -> do
-                env <- get
-                let test = runReader (eval cond) env
+                test <- eval cond
                 if test /= 0
-                   then exec $ Block [body, While cond body]
-                   else return env
-              Return exp -> undefined
+                   then execStmt $ Block [body, While cond body]
+                   else get
+              Return e -> do
+                val <- eval e
+                modify $ update "__retval__" val
+                get
 
-eval :: Expr -> Reader Env Int
+eval :: Expr -> Eval Int
 eval expr = case expr of
               Num x -> return x
-              Var v -> lookup v
-              FunCall func args -> undefined
+              Var v -> gets $ lookup v
+              FunCall func args -> do
+                functions <- ask
+                case filter (\(Function name _ _) -> name == func) functions of
+                  [] -> error $ "Unknown function " ++ func
+                  [Function _ argNames body] -> do
+                    evaldArgs <- traverse eval args
+                    let bindings = Map.fromList $ zip argNames evaldArgs
+                    modify (bindings :)
+                    execStmt body
+                    env <- get
+                    case Map.lookup "__retval__" $ head env of
+                          Nothing -> error $ "Function " ++ func ++ " did not return any value"
+                          Just x -> do
+                            modify tail
+                            return x
+                  _ -> error $ "Function " ++ func ++ " declared more than once."
               Neg e -> do
                 x <- eval e
                 return $ negate x
@@ -54,14 +76,12 @@ eval expr = case expr of
                 y <- eval (e2 expr)
                 return $ getOp expr x y
 
-lookup :: String -> Reader Env Int
-lookup s = do
-  env <- ask
-  case env of
+lookup :: String -> Env -> Int
+lookup s env = case env of
     [] -> error $ "lookup: unknown variable " ++ s
     (x:xs) -> case Map.lookup s x of
                 Nothing -> error $ "lookup: unknown variable " ++ s
-                Just v -> return v
+                Just v -> v
 
 -- Add or update entry (var,val) into the environment.
 -- Entry can only added to the topmost frame
