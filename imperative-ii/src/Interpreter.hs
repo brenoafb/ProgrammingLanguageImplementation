@@ -76,6 +76,7 @@ eval expr = case expr of
                 y <- eval (e2 expr)
                 return $ getOp expr x y
 
+-- WARNING: unsafe, fails if env does not contain variable
 lookup :: String -> Env -> Int
 lookup s env = case env of
     [] -> error $ "lookup: unknown variable " ++ s
@@ -85,6 +86,7 @@ lookup s env = case env of
 
 -- Add or update entry (var,val) into the environment.
 -- Entry can only added to the topmost frame
+-- WARNING: unsafe, fails when the stack contains no frames
 update :: String -> Int -> Env -> Env
 update var val [] = error "update: Invalid environment"
 update var val (env:envs) = case Map.lookup var env of
