@@ -10,6 +10,6 @@ main = do
   let program = parseStr code
       typechecks = typecheck program
   pPrint program
-  if typechecks
-     then putStrLn "No type errors"
-     else putStrLn "Type error"
+  case typecheck program of
+    Nothing -> putStrLn "type check succeeded"
+    Just err -> putStrLn $ "type check error: " ++ err
