@@ -1,6 +1,10 @@
 module Main where
 
-import Lib
+import Parser
+import Text.Pretty.Simple (pPrint)
 
 main :: IO ()
-main = someFunc
+main = do
+  code <- getContents
+  let tree = parseStr code
+  pPrint tree

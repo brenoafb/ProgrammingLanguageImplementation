@@ -1,0 +1,24 @@
+func fib(int n) : int {
+  int x;
+  int y;
+  int tmp;
+
+  x = 0;
+  y = 1;
+
+  while (n != 0) {
+    tmp = x;
+    x = y;
+    y = tmp + y;
+  }
+
+  return x;
+}
+
+func main() : void {
+  int n;
+  int f;
+
+  n = 10;
+  f = fib(n);
+}

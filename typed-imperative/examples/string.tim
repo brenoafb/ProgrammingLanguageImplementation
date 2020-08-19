@@ -1,0 +1,9 @@
+func main() : void {
+  str s1;
+  str s2;
+  str s3;
+
+  s1 = "Hello";
+  s2 = "world";
+  s3 = s1 ++ " " ++ s2 ++ ".";
+}

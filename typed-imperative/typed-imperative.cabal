@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 6e81228d5da091930970e92c90d782b9fc971903ec33379957cd24df7f722a54
+-- hash: 8fa11a66ff082afa1ada6b44236237129131b07301bb559b4d6759574a6d60a0
 
 name:           typed-imperative
 version:        0.1.0.0
@@ -36,6 +36,8 @@ library
   build-depends:
       base >=4.7 && <5
     , parsec
+    , pretty-simple
+    , text
   default-language: Haskell2010
 
 executable typed-imperative-exe
@@ -48,6 +50,8 @@ executable typed-imperative-exe
   build-depends:
       base >=4.7 && <5
     , parsec
+    , pretty-simple
+    , text
     , typed-imperative
   default-language: Haskell2010
 
@@ -62,5 +66,7 @@ test-suite typed-imperative-test
   build-depends:
       base >=4.7 && <5
     , parsec
+    , pretty-simple
+    , text
     , typed-imperative
   default-language: Haskell2010

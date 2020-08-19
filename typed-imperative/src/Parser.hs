@@ -7,23 +7,40 @@ import Text.ParserCombinators.Parsec.Language
 import qualified Text.ParserCombinators.Parsec.Token as Token
 
 type Program = [Function]
-data Function = Function String [String] Stmt
+data Function = Function String [(Type, String)] Type Stmt
   deriving Show
 
 data Type = IntT
           | StrT
           | BoolT
+          | VoidT
           deriving (Eq, Show)
 
 data Expr = Num Int
           | Var String
-          | Neg Expr
+          | Str String
+          | ETrue
+          | EFalse
           | FunCall String [Expr]
-          | Add {e1 :: Expr, e2 :: Expr}
-          | Sub {e1 :: Expr, e2 :: Expr}
-          | Mult {e1 :: Expr, e2 :: Expr}
-          | Div {e1 :: Expr, e2 :: Expr}
+          | RelOp { relOp :: RelOp, e1 :: Expr, e2 :: Expr}
+          | UnOp  { unOp :: UnOp, e1 :: Expr }
+          | BinOp { binOp :: BinOp, e1 :: Expr, e2 :: Expr}
           deriving Show
+
+data UnOp = Neg | Not
+  deriving (Eq, Show)
+
+data RelOp = Eq | NEq | Gt | Lt | LtEq | GtEq
+  deriving (Eq, Show)
+
+data BinOp = Add
+           | Sub
+           | Mult
+           | Div
+           | And
+           | Or
+           | Concat
+  deriving (Eq, Show)
 
 data Stmt = Decl Type String
           | Assn String Expr
@@ -48,9 +65,12 @@ languageDef =
                                      , "int"
                                      , "str"
                                      , "bool"
+                                     , "void"
                                      ]
            , Token.reservedOpNames = [ "+", "-", "*", "/"
-                                     , "="
+                                     , "=", "++", "&&", "||"
+                                     , "!", ">", "<", "=="
+                                     , ">=", "<=", "!=", ":"
                                      ]
            }
 
@@ -65,6 +85,12 @@ semi = Token.semi lexer
 whiteSpace = Token.whiteSpace lexer
 braces = Token.braces lexer
 comma = Token.comma lexer
+stringLiteral = Token.stringLiteral lexer
+
+parseStr :: String -> Program
+parseStr str = case parse program "" str of
+                 Left e -> error $ show e
+                 Right r -> r
 
 program :: Parser Program
 program = whiteSpace >> many function
@@ -73,14 +99,24 @@ function :: Parser Function
 function = do
   reserved "func"
   name <- identifier
-  args <- parens (identifier `sepBy` comma)
+  args <- parens (typedId `sepBy` comma)
+  reservedOp ":"
+  retType <- parseType
   body <- statement
-  return $ Function name args body
+  return $ Function name args retType body
+    where typedId = do
+            typ <- parseType
+            idt <- identifier
+            return (typ, idt)
 
 statement :: Parser Stmt
-statement = block <|> declaration <|> assignment
-          <|> ifElseStmt <|> ifStmt <|> while
-          <|>  returnStmt
+statement = block
+         <|> returnStmt
+         <|> declaration
+         <|> assignment
+         <|> ifElseStmt
+         <|> ifStmt
+         <|> while
 
 block :: Parser Stmt
 block = Block <$> braces (many statement)
@@ -96,6 +132,7 @@ parseType :: Parser Type
 parseType = (reserved "int" >> return IntT)
           <|> (reserved "str" >> return StrT)
           <|> (reserved "bool" >> return BoolT)
+          <|> (reserved "void" >> return VoidT)
 
 assignment :: Parser Stmt
 assignment = do
@@ -136,7 +173,7 @@ returnStmt = do
   return $ Return e
 
 expr :: Parser Expr
-expr = try funCall <|> buildExpressionParser operators term
+expr = try funCall <|> buildExpressionParser ops term
 
 funCall :: Parser Expr
 funCall = do
@@ -144,18 +181,31 @@ funCall = do
   args <- parens (sepBy expr comma)
   return $ FunCall funName args
 
-operators = [ [Prefix (reservedOp "-" >> return Neg)]
-            , [Infix  (reservedOp "*" >> return Mult) AssocLeft,
-               Infix  (reservedOp "/" >> return Div) AssocLeft]
-            , [Infix  (reservedOp "+" >> return Add) AssocLeft,
-               Infix  (reservedOp "-" >> return Sub) AssocLeft]
-            ]
+ops = [ [Prefix (reservedOp "!" >> return (UnOp Not))]
+      , [Infix (reservedOp "&&" >> return (BinOp And)) AssocLeft]
+      , [Infix (reservedOp "||" >> return (BinOp Or))  AssocLeft]
+      , [Infix (reservedOp "++" >> return (BinOp Concat)) AssocLeft]
+      , [Prefix (reservedOp "-" >> return (UnOp Neg))]
+      , [Infix  (reservedOp "*" >> return (BinOp Mult)) AssocLeft,
+         Infix  (reservedOp "/" >> return (BinOp Div)) AssocLeft
+        ]
+      , [Infix  (reservedOp "+" >> return (BinOp Add)) AssocLeft,
+         Infix  (reservedOp "-" >> return (BinOp Sub)) AssocLeft
+        ]
+      , [Infix  (reservedOp "==" >> return (RelOp Eq)) AssocLeft,
+         Infix  (reservedOp "!=" >> return (RelOp NEq)) AssocLeft
+        ]
+      , [Infix  (reservedOp ">=" >> return (RelOp GtEq)) AssocLeft,
+         Infix  (reservedOp "<=" >> return (RelOp LtEq)) AssocLeft
+        ]
+      , [Infix  (reservedOp ">" >> return (RelOp Gt)) AssocLeft,
+         Infix  (reservedOp "<" >> return (RelOp Lt)) AssocLeft
+        ]
+      ]
 
 term = parens expr
-     <|>  Var <$> identifier
+     <|> Var <$> identifier
      <|> Num <$> int
-
-parseStr :: String -> Program
-parseStr str = case parse program "" str of
-                 Left e -> error $ show e
-                 Right r -> r
+     <|> Str <$> stringLiteral
+     <|> (reserved "true" >> return ETrue)
+     <|> (reserved "false" >> return EFalse)
