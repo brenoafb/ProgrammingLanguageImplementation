@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 8fa11a66ff082afa1ada6b44236237129131b07301bb559b4d6759574a6d60a0
+-- hash: fb3f29e7f5c75c79007c6bfe7b0a6ae8b216ae9e86e287a70b8e2be45df2b2e8
 
 name:           typed-imperative
 version:        0.1.0.0
@@ -29,12 +29,15 @@ library
   exposed-modules:
       Lib
       Parser
+      Typechecker
   other-modules:
       Paths_typed_imperative
   hs-source-dirs:
       src
   build-depends:
       base >=4.7 && <5
+    , containers
+    , mtl
     , parsec
     , pretty-simple
     , text
@@ -49,6 +52,8 @@ executable typed-imperative-exe
   ghc-options: -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       base >=4.7 && <5
+    , containers
+    , mtl
     , parsec
     , pretty-simple
     , text
@@ -65,6 +70,8 @@ test-suite typed-imperative-test
   ghc-options: -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       base >=4.7 && <5
+    , containers
+    , mtl
     , parsec
     , pretty-simple
     , text

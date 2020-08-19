@@ -7,6 +7,7 @@ import Text.ParserCombinators.Parsec.Language
 import qualified Text.ParserCombinators.Parsec.Token as Token
 
 type Program = [Function]
+
 data Function = Function String [(Type, String)] Type Stmt
   deriving Show
 
