@@ -15,7 +15,6 @@ data TypeInfo = VarT { varType :: Type }
               | FuncT { argTypes :: [Type], retType :: Type }
               deriving (Eq, Show)
 
--- populate initial environment with functions
 typecheck :: Program -> Maybe String
 typecheck funcs = go funcs
   where env = M.fromList (map funcTypeInfo funcs)
@@ -102,8 +101,6 @@ typecheckStmt (Return e) = do
         Left err -> return $ Just $ "return: " ++ err
     _ -> return $ Just "invalid return"
 
--- Returns 'Nothing' if the expression does not typecheck.
--- Return Just <type of expression> otherwise
 getType :: Expr -> TypeC (Either String TypeInfo)
 getType (Num _) = return $ Right (VarT IntT)
 getType (Var s) = do
