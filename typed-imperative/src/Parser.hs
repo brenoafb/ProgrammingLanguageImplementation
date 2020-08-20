@@ -4,6 +4,7 @@ import Control.Monad
 import Text.ParserCombinators.Parsec
 import Text.ParserCombinators.Parsec.Expr
 import Text.ParserCombinators.Parsec.Language
+import Debug.Trace
 import qualified Text.ParserCombinators.Parsec.Token as Token
 
 type Program = [Function]
@@ -111,19 +112,24 @@ function = do
             return (typ, idt)
 
 statement :: Parser Stmt
-statement = block
+statement = trace "statement" $
+             block
          <|> returnStmt
          <|> declaration
          <|> assignment
-         <|> ifElseStmt
-         <|> ifStmt
          <|> while
+         <|> try ifElseStmt
+         <|> ifStmt
 
 block :: Parser Stmt
-block = Block <$> braces (many statement)
+block = trace "block" $ do
+  stmts <- braces (many statement)
+  case length stmts of
+    1 -> return $ head stmts
+    _ -> return $ Block stmts
 
 declaration :: Parser Stmt
-declaration = do
+declaration = trace "decl" $ do
   typ <- parseType
   var <- identifier
   semi
@@ -136,7 +142,7 @@ parseType = (reserved "int" >> return IntT)
           <|> (reserved "void" >> return VoidT)
 
 assignment :: Parser Stmt
-assignment = do
+assignment = trace "assn" $ do
     var <- identifier
     reservedOp "="
     e <- expr
@@ -144,7 +150,7 @@ assignment = do
     return $ Assn var e
 
 ifElseStmt :: Parser Stmt
-ifElseStmt = do
+ifElseStmt = trace "ifelse" $ do
   reserved "if"
   cond <- parens expr
   conseq <- statement
@@ -153,33 +159,33 @@ ifElseStmt = do
   return $ IfElse cond conseq alt
 
 ifStmt :: Parser Stmt
-ifStmt = do
+ifStmt = trace "if" $ do
   reserved "if"
   cond <- parens expr
   stmt <- statement
   return $ If cond stmt
 
 while :: Parser Stmt
-while = do
+while = trace "while" $ do
   reserved "while"
   cond <- parens expr
   body <- statement
   return $ While cond body
 
 returnStmt :: Parser Stmt
-returnStmt = do
+returnStmt = trace "return" $ do
   reserved "return"
   e <- expr
   semi
   return $ Return e
 
 expr :: Parser Expr
-expr = try funCall <|> buildExpressionParser ops term
+expr = buildExpressionParser ops term
 
 funCall :: Parser Expr
 funCall = do
   funName <- identifier
-  args <- parens (sepBy expr comma)
+  args <- parens (expr `sepBy` comma)
   return $ FunCall funName args
 
 ops = [ [Prefix (reservedOp "!" >> return (UnOp Not))]
@@ -205,8 +211,9 @@ ops = [ [Prefix (reservedOp "!" >> return (UnOp Not))]
       ]
 
 term = parens expr
+     <|> try funCall
+     <|> (reserved "true" >> return ETrue)
+     <|> (reserved "false" >> return EFalse)
      <|> Var <$> identifier
      <|> Num <$> int
      <|> Str <$> stringLiteral
-     <|> (reserved "true" >> return ETrue)
-     <|> (reserved "false" >> return EFalse)

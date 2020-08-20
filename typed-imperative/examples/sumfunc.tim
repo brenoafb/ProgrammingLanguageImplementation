@@ -1,0 +1,19 @@
+func sum(int x, int y) : int {
+  return x + y;
+}
+
+func prod(int x, int y) : int {
+  return x * y;
+}
+
+func main() : void {
+  int x;
+  int y;
+  int z;
+  int w;
+
+  x = 10;
+  y = 20;
+  w = sum(x, y);
+  z = prod(x, y);
+}

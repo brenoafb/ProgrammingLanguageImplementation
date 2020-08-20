@@ -1,0 +1,25 @@
+func recfac(int n) : int {
+  if (n <= 1) {
+    return 1;
+  } else {
+    return n * recfac(n-1);
+  }
+}
+
+func fac(int n) : int {
+  int tmp;
+  tmp = 1;
+
+  while (n > 0) {
+    tmp = tmp * n;
+    n = n - 1;
+  }
+  return tmp;
+}
+
+func main() : void {
+  int f1;
+  int f2;
+  f1 = fac(10);
+  f2 = recfac(10);
+}

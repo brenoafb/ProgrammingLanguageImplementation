@@ -67,6 +67,7 @@ execStmt (IfElse cond conseq alt) = do
     (BoolV False) -> execStmt alt
     _ -> throwError "Invalid if-else condition"
 
+-- error here?
 execStmt (Block []) = get
 execStmt (Block (stmt:stmts)) = do
   execStmt stmt
@@ -105,7 +106,7 @@ eval (Var var) = do
     [] -> throwError "Empty stack"
 
 eval (FunCall name args) = do
-  func@(Function _ bindings retType body) <- funcLookup name
+  (Function _ bindings retType body) <- funcLookup name
   evaldArgs <- mapM eval args
   env <- get
   let argNames = map snd bindings

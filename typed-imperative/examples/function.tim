@@ -1,25 +1,29 @@
-func fib(int n) : int {
-  int x;
-  int y;
-  int tmp;
-
-  x = 0;
-  y = 1;
-
-  while (n != 0) {
-    tmp = x;
-    x = y;
-    y = tmp + y;
-    n = n - 1;
+func even(int n) : bool {
+  if (n < 0) {
+    if (n == -1) {
+      return false;
+    }
+    return even(n+2);
+  } else if (n > 0) {
+    if (n == 1) {
+      return false;
+    }
+    return even(n-2);
+  } else {
+    return true;
   }
-
-  return x;
+}
+func f(int n) : int {
+  if (even(n)) {
+    return 1;
+  } else {
+    return 0;
+  }
 }
 
 func main() : void {
-  int n;
-  int f;
-
-  n = 10;
-  f = fib(n);
+  int x;
+  int y;
+  x = 10;
+  y = f(x);
 }
