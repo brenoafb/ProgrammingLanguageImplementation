@@ -38,19 +38,57 @@ exec = do
   execStmt mainBody
 
 execStmt :: Stmt -> Eval Env
-execStmt (Decl typ var) = undefined
+execStmt (Decl typ var) = do
+  modify (insertVar var typ)
+  get
 
-execStmt (Assn var expr) = undefined
+execStmt (Assn var expr) = do
+  env <- get
+  case env of
+    (frame:_) -> if M.member var frame
+      then do
+        val <- eval expr
+        modify $ \(frame:frames) -> M.insert var val frame : frames
+        get
+      else throwError $ "Undeclared variable " ++ var
+    [] -> throwError "Invalid environment: empty stack"
 
-execStmt (If cond conseq) = undefined
+execStmt (If cond conseq) = do
+  condVal <- eval cond
+  case condVal of
+    (BoolV True) -> execStmt conseq
+    (BoolV False) -> get
+    _ -> throwError "Invalid if condition"
 
-execStmt (IfElse cond conseq alt) = undefined
+execStmt (IfElse cond conseq alt) = do
+  condVal <- eval cond
+  case condVal of
+    (BoolV True) -> execStmt conseq
+    (BoolV False) -> execStmt alt
+    _ -> throwError "Invalid if-else condition"
 
-execStmt (Block stmts) = undefined
+execStmt (Block []) = get
+execStmt (Block (stmt:stmts)) = do
+  execStmt stmt
+  execStmt (Block stmts)
 
-execStmt (While cond body) = undefined
+execStmt (While cond body) = do
+  condVal <- eval cond
+  case condVal of
+    (BoolV True) -> do
+      execStmt body
+      execStmt (While cond body)
+    (BoolV False) -> get
+    _ -> throwError "Invalid while condition"
 
-execStmt (Return expr) = undefined
+execStmt (Return expr) = do
+  env <- get
+  case env of
+    (frame:_) -> do
+      val <- eval expr
+      modify $ \(frame:frames) -> M.insert "__retval__" val frame : frames
+      get
+    [] -> throwError "return: empty environment"
 
 eval :: Expr -> Eval Value
 eval (Num x) = return $ IntV x
@@ -111,6 +149,15 @@ eval (BinOp op e1 e2) = do
     (op, BoolV b1, BoolV b2) | logicalOp op -> return $ binOpFunc op (BoolV b1) (BoolV b2)
     (op, StrV s1, StrV s2) | strOp op -> return $ binOpFunc op (StrV s1) (StrV s2)
     _ -> throwError "Invalid binary operation"
+
+insertVar :: String -> Type -> Env -> Env
+insertVar = undefined
+
+defaultVal :: Type -> Value
+defaultVal IntT = IntV 0
+defaultVal BoolT = BoolV False
+defaultVal StrT = StrV ""
+defaultVal VoidT = VoidV
 
 arithOp :: BinOp -> Bool
 arithOp op
