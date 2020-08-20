@@ -151,7 +151,7 @@ eval (BinOp op e1 e2) = do
     _ -> throwError "Invalid binary operation"
 
 insertVar :: String -> Type -> Env -> Env
-insertVar = undefined
+insertVar var typ (frame:frames) = M.insert var (defaultVal typ) frame : frames
 
 defaultVal :: Type -> Value
 defaultVal IntT = IntV 0

@@ -10,6 +10,7 @@ func fib(int n) : int {
     tmp = x;
     x = y;
     y = tmp + y;
+    n = n - 1;
   }
 
   return x;
