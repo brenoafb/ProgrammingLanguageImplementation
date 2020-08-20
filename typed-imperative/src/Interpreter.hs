@@ -67,7 +67,6 @@ execStmt (IfElse cond conseq alt) = do
     (BoolV False) -> execStmt alt
     _ -> throwError "Invalid if-else condition"
 
--- error here?
 execStmt (Block []) = get
 execStmt (Block (stmt:stmts)) = do
   execStmt stmt
