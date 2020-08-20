@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: fb3f29e7f5c75c79007c6bfe7b0a6ae8b216ae9e86e287a70b8e2be45df2b2e8
+-- hash: e73dfc7aa02b1b0f8d36aa555c548055c4dc2d4cb52fc69ee326d06c5f123c0d
 
 name:           typed-imperative
 version:        0.1.0.0
@@ -27,6 +27,7 @@ source-repository head
 
 library
   exposed-modules:
+      Interpreter
       Lib
       Parser
       Typechecker
