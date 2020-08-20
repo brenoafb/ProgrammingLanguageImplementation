@@ -1,0 +1,15 @@
+func f(bool x, bool y, bool z) : bool {
+  return (x && y && !z)
+      || (x && !y && z)
+      || (!x && y && z);
+}
+
+func main() : void {
+  bool a;
+  bool b;
+  bool c;
+
+  a = f(true, false, false);
+  b = f(true, true, false);
+  c = f(true, false, true);
+}

@@ -182,12 +182,6 @@ returnStmt = trace "return" $ do
 expr :: Parser Expr
 expr = buildExpressionParser ops term
 
-funCall :: Parser Expr
-funCall = do
-  funName <- identifier
-  args <- parens (expr `sepBy` comma)
-  return $ FunCall funName args
-
 ops = [ [Prefix (reservedOp "!" >> return (UnOp Not))]
       , [Infix (reservedOp "&&" >> return (BinOp And)) AssocLeft]
       , [Infix (reservedOp "||" >> return (BinOp Or))  AssocLeft]
@@ -209,6 +203,12 @@ ops = [ [Prefix (reservedOp "!" >> return (UnOp Not))]
          Infix  (reservedOp "<" >> return (RelOp Lt)) AssocLeft
         ]
       ]
+
+funCall :: Parser Expr
+funCall = do
+  funName <- identifier
+  args <- parens (expr `sepBy` comma)
+  return $ FunCall funName args
 
 term = parens expr
      <|> try funCall
