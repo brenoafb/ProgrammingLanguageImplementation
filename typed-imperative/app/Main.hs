@@ -15,5 +15,7 @@ main = do
     Just err -> putStrLn $ "type check error: " ++ err
     Nothing -> do
       putStrLn "type check succeeded"
-      let env = runProgram program
-      print env
+      let eval = runProgram program
+      case eval of
+        Left err -> putStrLn $ "Interpreter error: " ++ err
+        Right env -> print env

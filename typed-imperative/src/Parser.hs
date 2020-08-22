@@ -4,7 +4,6 @@ import Control.Monad
 import Text.ParserCombinators.Parsec
 import Text.ParserCombinators.Parsec.Expr
 import Text.ParserCombinators.Parsec.Language
-import Debug.Trace
 import qualified Text.ParserCombinators.Parsec.Token as Token
 
 type Program = [Function]
@@ -112,8 +111,7 @@ function = do
             return (typ, idt)
 
 statement :: Parser Stmt
-statement = trace "statement" $
-             block
+statement = block
          <|> returnStmt
          <|> declaration
          <|> assignment
@@ -122,14 +120,14 @@ statement = trace "statement" $
          <|> ifStmt
 
 block :: Parser Stmt
-block = trace "block" $ do
+block = do
   stmts <- braces (many statement)
   case length stmts of
     1 -> return $ head stmts
     _ -> return $ Block stmts
 
 declaration :: Parser Stmt
-declaration = trace "decl" $ do
+declaration = do
   typ <- parseType
   var <- identifier
   semi
@@ -142,7 +140,7 @@ parseType = (reserved "int" >> return IntT)
           <|> (reserved "void" >> return VoidT)
 
 assignment :: Parser Stmt
-assignment = trace "assn" $ do
+assignment = do
     var <- identifier
     reservedOp "="
     e <- expr
@@ -150,7 +148,7 @@ assignment = trace "assn" $ do
     return $ Assn var e
 
 ifElseStmt :: Parser Stmt
-ifElseStmt = trace "ifelse" $ do
+ifElseStmt = do
   reserved "if"
   cond <- parens expr
   conseq <- statement
@@ -159,21 +157,21 @@ ifElseStmt = trace "ifelse" $ do
   return $ IfElse cond conseq alt
 
 ifStmt :: Parser Stmt
-ifStmt = trace "if" $ do
+ifStmt = do
   reserved "if"
   cond <- parens expr
   stmt <- statement
   return $ If cond stmt
 
 while :: Parser Stmt
-while = trace "while" $ do
+while = do
   reserved "while"
   cond <- parens expr
   body <- statement
   return $ While cond body
 
 returnStmt :: Parser Stmt
-returnStmt = trace "return" $ do
+returnStmt = do
   reserved "return"
   e <- expr
   semi

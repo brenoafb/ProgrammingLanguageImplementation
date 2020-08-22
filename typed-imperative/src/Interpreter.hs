@@ -21,8 +21,8 @@ type Error = String
 
 type Eval a = ExceptT Error (ReaderT Program (State Env)) a
 
-runProgram :: Program -> Env
-runProgram program = execState (runReaderT (runExceptT exec) program) env
+runProgram :: Program -> Either Error Env
+runProgram program = evalState (runReaderT (runExceptT exec) program) env
   where env = [M.empty]
 
 funcLookup :: String -> Eval Function

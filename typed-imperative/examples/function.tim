@@ -15,9 +15,9 @@ func even(int n) : bool {
 }
 func f(int n) : int {
   if (even(n)) {
-    return 1;
-  } else {
     return 0;
+  } else {
+    return 1;
   }
 }
 
