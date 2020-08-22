@@ -17,7 +17,7 @@ execute _ [] = Nothing -- more than one item in stack upon finalizing
 execute st (PUSH x:ops) = execute (x:st) ops
 execute (x:y:xs) (op:ops) = case op of
                               MUL -> execute (x * y : xs) ops
-                              DIV -> execute (y `div` x : xs) ops
+                              DIV | x /= 0 -> execute (y `div` x : xs) ops
                               ADD -> execute (x + y : xs) ops
                               SUB -> execute (y - x : xs) ops
                               NEG -> execute ((-x) : y : xs) ops

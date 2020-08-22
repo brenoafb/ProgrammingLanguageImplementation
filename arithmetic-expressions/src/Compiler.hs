@@ -1,4 +1,6 @@
-module Compiler where
+module Compiler
+  ( compile
+  ) where
 
 import Machine
 import Parser
