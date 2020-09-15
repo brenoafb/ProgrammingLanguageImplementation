@@ -66,7 +66,5 @@ term = parens expr
      <|>  Var <$> identifier
      <|> Num <$> integer
 
-parseString :: String -> Expr
-parseString str = case parse program "" str of
-                    Left e -> error $ show e
-                    Right r -> r
+parseString :: String -> Either ParseError Expr
+parseString = parse (program <* eof) ""
