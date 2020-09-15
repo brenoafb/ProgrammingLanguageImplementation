@@ -1,4 +1,4 @@
-# Arithmetic Exressions
+# Arithmetic Expressions
 
 This language handles integer arithmetic expressions.
 
