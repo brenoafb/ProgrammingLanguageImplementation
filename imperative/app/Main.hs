@@ -5,29 +5,43 @@ import Machine
 import Compiler
 import Interpreter
 
-import System.Environment
 import Control.Monad.Reader
 import Control.Monad.State
 import qualified Data.Map as Map
 
+import System.IO ( isEOF )
+import System.Environment ( getArgs )
+
 main :: IO ()
 main = do
   args <- getArgs
-  if not $ null args
-     then do
-       code <- readFile $ head args
-       let tree = parseStr code
-           varTable = buildVarTable tree
-           instr = compile' tree
-           results = execState (exec tree) Map.empty
-           machine = initMachine (length $ Map.keys varTable)
-           machine' = execute machine instr
-       print tree
-       putStrLn ""
-       print results
-       putStrLn ""
-       print varTable
-       putStrLn ""
-       putStrLn . unlines $ map show instr
-       print machine'
-       else return ()
+  case args of
+    [fileName] -> interpreter fileName
+    ["-c", fileName] -> compiler fileName
+    _ -> usage
+
+interpreter :: FilePath -> IO ()
+interpreter fp = do
+  code <- readFile fp
+  case parseString code of
+    Left err -> print err
+    Right stmt -> print $ execState (exec stmt) Map.empty
+
+compiler :: FilePath -> IO ()
+compiler fp = do
+  code <- readFile fp
+  case parseString code of
+    Left err -> print err
+    Right stmt -> do
+      let table = buildVarTable stmt
+          instr = compile' stmt
+          machine = initMachine (length $ Map.keys table)
+          machine' = execute machine instr
+      printList instr
+      putStrLn ""
+      print machine'
+
+usage :: IO ()
+usage = putStrLn "usage: imperative [-c] <file>"
+
+printList = mapM print

@@ -103,7 +103,5 @@ term = parens expr
      <|>  Var <$> identifier
      <|> Num <$> int
 
-parseStr :: String -> Stmt
-parseStr str = case parse languageParser "" str of
-                 Left e -> error $ show e
-                 Right r -> r
+parseString :: String -> Either ParseError Stmt
+parseString = parse (languageParser <* eof) ""
