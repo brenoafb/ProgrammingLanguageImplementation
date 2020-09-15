@@ -4,6 +4,8 @@ In this language, a program is a statement.
 This includes a block statement, which is a
 sequence of statement enclosed with braces.
 
+The language only supports integers.
+
 Types of statement include assignment, if-else,
 and while.
 
