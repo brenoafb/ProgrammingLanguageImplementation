@@ -1,4 +1,4 @@
-# Let Exressions
+# Let Expressions
 
 This language handles integer arithmetic expressions
 with let expressions.
