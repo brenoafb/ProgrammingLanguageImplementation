@@ -42,7 +42,7 @@ func fibonacci(n) {
     n = n - 1;
   }
 
-  return a; // or is it b?
+  return a;
 }
 
 func main() {
