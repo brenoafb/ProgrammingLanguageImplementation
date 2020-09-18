@@ -34,14 +34,33 @@ data Machine = Machine { getPointer :: Index
 type Error = String
 type MachineT a = ExceptT Error (State Machine) a
 
+execute :: Machine -> [OP] -> Either Error Machine
+execute m ops =
+  case runState (runExceptT (execute' ops)) m of
+    (Left err, _) -> Left err
+    (_, m') -> Right m'
+
 initMachine :: Int -> Machine
 initMachine nReg = Machine 0 [] $ replicate nReg 0
 
-execute :: Machine -> [OP] -> Either Error Machine
-execute m ops =
-  case runState (runExceptT (mapM executeSingle ops)) m of
-    (Left err, _) -> Left err
-    (_, m') -> Right m'
+execute' :: [OP] -> MachineT ()
+execute' ops = do
+  (Machine p s r) <- get
+  instr <- getInstr p ops
+  case instr of
+    HALT -> return ()
+    _ -> executeSingle instr >> execute' ops
+
+getInstr :: Index -> [OP] -> MachineT OP
+getInstr i ops
+  | i < 0 = throwError "Invalid PC"
+  | i >= length ops = throwError "Invalid PC"
+  | otherwise = return $ ops !! i
+
+-- execute m ops =
+--   case runState (runExceptT (mapM executeSingle ops)) m of
+--     (Left err, _) -> Left err
+--     (_, m') -> Right m'
 
 executeSingle :: OP -> MachineT ()
 
