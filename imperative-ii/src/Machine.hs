@@ -1,6 +1,8 @@
 module Machine where
 
 import Parser
+import Control.Monad.State
+import Control.Monad.Except
 
 type Index = Int
 
@@ -20,75 +22,108 @@ data OP = PUSH Int     -- push integer onto stack
 type Stack = [Int]
 type Registers = [Int]
 
-data Machine = Machine { getPointer :: Index, getStack :: Stack, getRegisters :: Registers }
-  deriving Show
+data Machine = Machine { getPointer :: Index
+                       , getStack :: Stack
+                       , getRegisters :: Registers
+                       } deriving Show
+
+type Error = String
+type MachineT a = ExceptT Error (State Machine) a
 
 initMachine :: Int -> Machine
 initMachine nReg = Machine 0 [] $ replicate nReg 0
 
+execute :: Machine -> [OP] -> Either Error Machine
+execute m ops =
+  case runState (runExceptT (mapM executeSingle ops)) m of
+    (Left err, _) -> Left err
+    (_, m') -> Right m'
+
+executeSingle :: OP -> MachineT ()
+
+executeSingle HALT = return ()
+
+executeSingle (PUSH i) = modify $ pushStack i
+
+executeSingle (LOAD i) = do
+  m <- get
+  modify $ pushStack (getRegister m i)
+  modify (incrementPointer 1)
+
+executeSingle (STORE i) = do
+  x <- popStack
+  modify (setRegister i x)
+  modify (incrementPointer 1)
+
+executeSingle (GOTO i) =
+  modify (incrementPointer i)
+
+executeSingle (BZ i) = do
+  x <- popStack
+  if x == 0
+     then modify (incrementPointer i)
+     else modify (incrementPointer 1)
+
+executeSingle NEG = do
+  x <- popStack
+  modify . pushStack $ negate x
+  modify (incrementPointer 1)
+
+executeSingle DIV = do
+  x <- popStack
+  y <- popStack
+  guard (x /= 0)
+  modify . pushStack $ y `div` x
+  modify (incrementPointer 1)
+
+executeSingle op
+  | op `elem` [ADD, SUB, MUL] = do
+    x <- popStack
+    y <- popStack
+    f <- getBinOp op
+    modify . pushStack $ f x y
+    modify (incrementPointer 1)
+
 getRegister :: Machine -> Index -> Int
 getRegister (Machine _ _ r) i = r !! i
 
-setRegister :: Registers -> Index -> Int -> Registers
-setRegister r i x = r1 ++ (x : tail r2)
-  where (r1,r2) = splitAt i r
+setRegister :: Index -> Int -> Machine -> Machine
+setRegister i x m = setRegisters (r1 ++ (x : tail r2)) m
+  where r = getRegisters m
+        (r1,r2) = splitAt i r
 
-execute :: Machine -> [OP] -> Machine
-execute m [] = m
-execute m ops = case ops !! getPointer m of
-                  HALT -> m
-                  op   -> execute (executeSingle m op) ops
+setPointer :: Index -> Machine -> Machine
+setPointer i (Machine _ s r) = Machine i s r
 
--- highly repetitive code ahead...
-executeSingle :: Machine -> OP -> Machine
-executeSingle m op = case op of
-  HALT -> m
-  PUSH x -> Machine p s' r
-    where s' = x : getStack m
-          r  = getRegisters m
-          p  = 1 + getPointer m
-  LOAD i -> Machine p s' r
-    where s' = x : getStack m
-          r = getRegisters m
-          x = getRegister m i
-          p  = 1 + getPointer m
-  STORE i -> Machine p xs r'
-    where r' = setRegister (getRegisters m) i x
-          (x:xs) = getStack m
-          p  = 1 + getPointer m
-  GOTO i -> Machine p s r
-    where r = getRegisters m
-          s = getStack m
-          p = i + getPointer m
-  BZ i -> Machine p xs r
-    where r = getRegisters m
-          x:xs = getStack m
-          p = if x == 0 then i + getPointer m else 1 + getPointer m
-  ADD -> Machine p s' r
-    where r = getRegisters m
-          (x:y:xs) = getStack m
-          s' = x + y : xs
-          p  = 1 + getPointer m
-  SUB -> Machine p s' r
-    where r = getRegisters m
-          (x:y:xs) = getStack m
-          s' = y - x : xs
-          p  = 1 + getPointer m
-  MUL -> Machine p s' r
-    where r = getRegisters m
-          (x:y:xs) = getStack m
-          s' = x * y : xs
-          p  = 1 + getPointer m
-  DIV -> Machine p s' r
-    where r = getRegisters m
-          (x:y:xs) = getStack m
-          s' = y `div` x : xs
-          p  = 1 + getPointer m
-  NEG -> Machine p s' r
-    where r = getRegisters m
-          (x:xs) = getStack m
-          s' = negate x : xs
-          p  = 1 + getPointer m
+setStack :: Stack -> Machine -> Machine
+setStack s (Machine p _ r) = Machine p s r
 
+setRegisters :: Registers -> Machine -> Machine
+setRegisters r (Machine p s _) = Machine p s r
 
+pushStack :: Int -> Machine -> Machine
+pushStack x (Machine p s r) = Machine p (x:s) r
+
+incrementPointer :: Index -> Machine -> Machine
+incrementPointer i (Machine p s r) = Machine (p + i) s r
+
+popStack :: MachineT Int
+popStack = do
+  (Machine p s r) <- get
+  case s of
+    [] -> throwError "Empty stack"
+    (x:xs) -> modify (setStack xs) >> return x
+
+topOfStack :: MachineT Int
+topOfStack = do
+  (Machine _ s _) <- get
+  case s of
+    [] -> throwError "Empty stack"
+    (x:_) -> return x
+
+getBinOp :: OP -> MachineT (Int -> Int -> Int)
+getBinOp ADD = return (+)
+getBinOp SUB = return (-)
+getBinOp MUL = return (*)
+getBinOp op  = throwError $ "Not a binary op: " ++ show op
 
