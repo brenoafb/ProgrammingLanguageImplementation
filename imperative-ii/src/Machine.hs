@@ -66,7 +66,7 @@ executeSingle :: OP -> MachineT ()
 
 executeSingle HALT = return ()
 
-executeSingle (PUSH i) = modify $ pushStack i
+executeSingle (PUSH i) = modify $ incrementPointer 1 . pushStack i
 
 executeSingle (LOAD i) = do
   m <- get
