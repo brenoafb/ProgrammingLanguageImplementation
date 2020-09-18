@@ -1,4 +1,8 @@
-module Machine where
+module Machine
+  ( OP (..)
+  , initMachine
+  , execute
+  ) where
 
 import Parser
 import Control.Monad.State
