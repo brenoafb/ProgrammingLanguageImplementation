@@ -4,6 +4,8 @@ import Parser
 import Machine
 
 import Control.Monad.Reader
+import Control.Monad.State
+import Control.Monad.Except
 import qualified Data.Map as Map
 
 -- a VarTable contains an assignment of each variable used in the program
@@ -11,66 +13,38 @@ import qualified Data.Map as Map
 -- Note that this language does not have lexical scoping, thus we treat
 -- a variable 'x' appearing in any scope as the same variable.
 type VarTable = Map.Map String Int
+type VarTables = Map.Map String VarTable
+type CompileT a = ExceptT Error (Reader Program) a
+type Error = String
 
-compile' :: Stmt -> [OP]
-compile' stmt = runReader (compile stmt) (buildVarTable stmt) ++ [HALT]
+buildVarTables :: Program -> VarTables
+buildVarTables fs = Map.fromList (zip names (map buildVarTable fs))
+  where names = map (\(Function name _ _) -> name) fs
 
-compile :: Stmt -> Reader VarTable [OP]
-compile s = case s of
-              Assignment var expr -> do
-                c <- compileExpr expr
-                t <- ask
-                let Just i = Map.lookup var t -- warning: assumes vartable contains variable
-                return $ c ++ [STORE i]
-              If cond conseq -> do
-                cTest <- compileExpr cond
-                cBody <- compile conseq
-                return $ cTest ++ [BZ (length cBody)] ++ cBody -- watch out for off-by-one error
-              IfElse cond conseq alt -> do
-                cTest <- compileExpr cond
-                cBody <- compile conseq
-                cAlt <- compile alt
-                return $ cTest ++ [BZ (length cBody)] ++ cBody ++ cAlt-- watch out for off-by-one error
-              While cond body -> do
-                cTest <- compileExpr cond
-                cBody <- compile body
-                let d1 = 2 + length cBody
-                    d2 = negate $ 1 + length cBody + length cTest  -- not sure if this is right
-                return $ cTest ++ [BZ d1] ++ cBody ++ [GOTO d2]
-              Block [] -> return []
-              Block (stmt:stmts) -> (++) <$> compile stmt <*> compile (Block stmts)
+buildVarTable :: Function -> VarTable
+buildVarTable f = Map.fromList $ zip (getVariables f) [0..]
 
-compileExpr :: Expr -> Reader VarTable [OP]
-compileExpr e = case e of
-              Num x  -> return [PUSH x]
-              Neg e' -> (++ [NEG]) <$> compileExpr e'
-              Var id -> do
-                t <- ask
-                let Just i = Map.lookup id t -- warning: assumes vartable contains variable
-                    op = getOp e
-                return [LOAD i]
-              _ -> do
-                c1 <- compileExpr $ e1 e
-                c2 <- compileExpr $ e2 e
-                let op = getOp e
-                return $ c1 ++ c2 ++ [op]
+getVariables :: Function -> [String]
+getVariables (Function name args body) =
+  unique (args ++ getStmtVariables body)
 
--- compileAssignment :: VarTable -> (String, Expr) -> [OP]
--- compileAssignment t (v, e) = let c = compile t e
---                                  Just i = lookup v t
---                               in c ++ [STORE i]
+-- new (valid) variables can only show up in assignments
+getStmtVariables :: Stmt -> [String]
+getStmtVariables (Assignment s _) = [s]
+getStmtVariables (If _ s) = getStmtVariables s
+getStmtVariables (IfElse _ s1 s2) =
+  unique $ getStmtVariables s1 ++ getStmtVariables s2
+getStmtVariables (Block stmts) =
+  unique $ concatMap getStmtVariables stmts
+getStmtVariables (While _ s) = getStmtVariables s
+getStmtVariables _ = []
 
-buildVarTable :: Stmt -> VarTable
-buildVarTable s = let variables = getVariables s
-                   in Map.fromList $ zip variables [0..]
-
-getVariables :: Stmt -> [String]
-getVariables s = case s of
-                   Assignment s _ -> [s]
-                   If _ s -> getVariables s
-                   IfElse _ s1 s2 -> unique $ getVariables s1 ++ getVariables s2
-                   Block stmts -> unique . concat $ map getVariables stmts
-                   While _ s -> getVariables s
+-- getVariables s = case s of
+--                    Assignment s _ -> [s]
+--                    If _ s -> getVariables s
+--                    IfElse _ s1 s2 -> unique $ getVariables s1 ++ getVariables s2
+--                    Block stmts -> unique . concat $ map getVariables stmts
+--                    While _ s -> getVariables s
 
 getOp :: Expr -> OP
 getOp (Mult _ _) = MUL
