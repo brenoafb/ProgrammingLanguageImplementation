@@ -1,5 +1,6 @@
 module Compiler
   ( compile
+  , printASM
   ) where
 
 import Prelude hiding (lookup)
@@ -11,6 +12,8 @@ import Control.Monad.Reader
 import Control.Monad.State
 import Control.Monad.Except
 import qualified Data.Map as Map
+
+import Debug.Trace (trace)
 
 -- a VarTable contains an assignment of each variable used in the function
 -- to a register index in the machine.
@@ -64,7 +67,13 @@ compileFunction' f =
 
 -- Left <function> indicates a function call
 compileFunction :: Function -> CompileT VarTable PPCode
-compileFunction (Function name args body) = compileStmt body
+-- compileFunction (Function name args body) =
+--   (++) <$> storeArgs args <*> compileStmt body
+compileFunction (Function "main" args body) = compileStmt body
+compileFunction (Function name args body) = do
+  s <- storeArgs args
+  c <- compileStmt body
+  return $ Right (STORE 0) : s ++ [Right $ LOAD 0] ++ c
 
 compileStmt :: Stmt -> CompileT VarTable PPCode
 compileStmt (Assignment v e) = do
@@ -98,8 +107,6 @@ compileStmt (While e s) = do
       d2 = negate $ 1 + length cs + length ce
   return $ ce ++ [Right $ BZ d1] ++ cs ++ [Right $ GOTO d2]
 
--- compileStmt (Return e) =
---   (++) <$> compileExpr e <*> restoreRegs
 compileStmt (Return e) = do
   c <- compileExpr e
   return $ Right (STORE 0) : c
@@ -142,14 +149,21 @@ lookup x = do
 saveRegs :: CompileT VarTable PPCode
 saveRegs = do
   t <- ask
-  let regs = filter (/= 0) $ Map.elems t -- by convention, temporary register is not saved
+  let regs = Map.elems t
   return $ map (Right . LOAD) regs
 
 restoreRegs :: CompileT VarTable PPCode
 restoreRegs = do
   t <- ask
-  let regs = filter (/= 0) . reverse $ Map.elems t
+  let regs = reverse . filter (/= 0) $ Map.elems t
   return $ map (Right . STORE) regs
+
+storeArgs :: [String] -> CompileT VarTable PPCode
+storeArgs args = do
+  t <- trace (show args) $ ask
+  case traverse (`Map.lookup` t) args of
+    Nothing -> throwError "Error obtaining function arguments"
+    Just regs -> return $ map (Right . STORE) $ reverse regs
 
 buildVarTables :: Program -> VarTables
 buildVarTables fs = Map.fromList (zip names (map buildVarTable fs))

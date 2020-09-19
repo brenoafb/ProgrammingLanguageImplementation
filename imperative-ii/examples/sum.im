@@ -1,0 +1,8 @@
+func main() {
+  c = 10;
+  s = 0;
+  while (c) {
+    s = s + c;
+    c = c - 1;
+  }
+}

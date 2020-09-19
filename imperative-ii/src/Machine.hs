@@ -120,7 +120,7 @@ executeSingle op
     x <- popStack
     y <- popStack
     f <- getBinOp op
-    modify . pushStack $ f x y
+    modify . pushStack $ f y x
     modify (incrementPointer 1)
 
 getRegister :: Machine -> Index -> Int
