@@ -1,8 +1,12 @@
-module Compiler where
+module Compiler
+  ( compile
+  ) where
 
+import Prelude hiding (lookup)
 import Parser
 import Machine
 
+import qualified Data.List as L
 import Control.Monad.Reader
 import Control.Monad.State
 import Control.Monad.Except
@@ -16,22 +20,56 @@ type VarTables = Map.Map String VarTable
 type Error = String
 type PPCode = [Either String OP]
 
-type CompileT a = ExceptT Error (Reader VarTable) a
+type AddressTable = Map.Map String Int
 
-compileFunction' :: Function -> PPCode
+type CompileT r a = ExceptT Error (Reader r) a
+
+printASM :: [OP] -> IO ()
+printASM asm =
+  mapM_ (\(i, c) -> putStrLn $ show i ++ "\t" ++ show c) $ zip [0..] asm
+
+compile :: Program -> Either Error [OP]
+compile p = do
+  ppCodes <- orderFunctions p
+  let t = buildAddressTable ppCodes
+      x = concat <$> traverse h ppCodes
+    in runReader (runExceptT x) t
+   where h (f, pp) = traverse g pp
+         g (Left s) = CALL <$> lookup s
+         g (Right op) = pure op
+
+orderFunctions :: Program -> Either Error [(String, PPCode)]
+orderFunctions p =
+  case L.partition (\(Function name _ _) -> name == "main") p of
+    ([main], fs) -> do
+      mainC <- (\c -> ("main", c)) <$> ((++ [Right HALT]) <$> compileFunction' main)
+      fsC <- go fs
+      return $ mainC : fsC
+    _ -> throwError "Invalid program"
+  where go [] = pure []
+        go (f@(Function name _ _):fs) =
+           (:) <$> ((\c -> (name,c)) <$> compileFunction' f)
+               <*> go fs
+
+buildAddressTable :: [(String, PPCode)] -> AddressTable
+buildAddressTable = Map.fromList . g 0 . lengths
+  where g i ((n, c):xs) = (n, i) : g (i + c) xs
+        g i [] = []
+        lengths = map (\(n,c) -> (n, length c))
+
+compileFunction' :: Function -> Either Error PPCode
 compileFunction' f =
   let varTable = buildVarTable f
-      Right ppCode = runReader (runExceptT (compileFunction f)) varTable
-   in ppCode
+   in runReader (runExceptT (compileFunction f)) varTable
 
 -- Left <function> indicates a function call
-compileFunction :: Function -> CompileT PPCode
+compileFunction :: Function -> CompileT VarTable PPCode
 compileFunction (Function name args body) = compileStmt body
 
-compileStmt :: Stmt -> CompileT PPCode
+compileStmt :: Stmt -> CompileT VarTable PPCode
 compileStmt (Assignment v e) = do
   c <- compileExpr e
-  i <- lookupVar v
+  i <- lookup v
   return $ c ++ [Right $ STORE i]
 
 compileStmt (If e s) = do
@@ -67,12 +105,12 @@ compileStmt (Return e) = do
   return $ Right (STORE 0) : c
         ++ [Right $ LOAD 0, Right STOREPC]
 
-compileExpr :: Expr -> CompileT PPCode
+compileExpr :: Expr -> CompileT VarTable PPCode
 
 compileExpr (Num x) = return [Right $ PUSH x]
 
 compileExpr (Var s) = do
-  i <- lookupVar s
+  i <- lookup s
   return [Right $ LOAD i]
 
 compileExpr (Neg e) = (++ [Right NEG]) <$> compileExpr e
@@ -94,23 +132,23 @@ compileExpr e =
   (++ [Right op]) <$> ((++) <$> (compileExpr $ e1 e) <*> (compileExpr $ e2 e))
     where op = getOp e
 
-lookupVar :: String -> CompileT Int
-lookupVar v = do
-  t <- ask
-  case Map.lookup v t of
-    Nothing -> throwError $ "Unassigned variable " ++ v
-    Just i -> return i
+lookup :: Ord k => k -> CompileT (Map.Map k v) v
+lookup x = do
+  m <- ask
+  case Map.lookup x m of
+    Nothing -> throwError "lookup: invalid key"
+    Just y -> return y
 
-saveRegs :: CompileT PPCode
+saveRegs :: CompileT VarTable PPCode
 saveRegs = do
   t <- ask
   let regs = filter (/= 0) $ Map.elems t -- by convention, temporary register is not saved
   return $ map (Right . LOAD) regs
 
-restoreRegs :: CompileT PPCode
+restoreRegs :: CompileT VarTable PPCode
 restoreRegs = do
   t <- ask
-  let regs = filter (/= 0) $ Map.elems t
+  let regs = filter (/= 0) . reverse $ Map.elems t
   return $ map (Right . STORE) regs
 
 buildVarTables :: Program -> VarTables

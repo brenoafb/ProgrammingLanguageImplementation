@@ -14,6 +14,7 @@ data OP = PUSH Int     -- push integer onto stack
         | LOAD Index   -- load register value to stack
         | STORE Index  -- store top of stack in register at index
         | GOTO Index   -- goto pc + index unconditionally
+        | CALL Index   -- goto index unconditionally
         | BZ Index     -- branch to pc + index if top of stack is zero
         | LOADPC       -- load PC + 2 onto the stack
         | STOREPC      -- store top of stack onto PC
@@ -55,8 +56,8 @@ execute' ops = do
 
 getInstr :: Index -> [OP] -> MachineT OP
 getInstr i ops
-  | i < 0 = throwError "Invalid PC"
-  | i >= length ops = throwError "Invalid PC"
+  | i < 0 = reportError $ "Invalid PC : " ++ show i
+  | i >= length ops = reportError $ "Invalid PC " ++ show i
   | otherwise = return $ ops !! i
 
 -- execute m ops =
@@ -82,6 +83,9 @@ executeSingle (STORE i) = do
 
 executeSingle (GOTO i) =
   modify (incrementPointer i)
+
+executeSingle (CALL i) =
+  modify (setPointer i)
 
 executeSingle (BZ i) = do
   x <- popStack
@@ -146,15 +150,21 @@ popStack :: MachineT Int
 popStack = do
   (Machine p s r) <- get
   case s of
-    [] -> throwError "Empty stack"
+    [] -> reportError "popStack: Empty stack"
     (x:xs) -> modify (setStack xs) >> return x
 
 topOfStack :: MachineT Int
 topOfStack = do
   (Machine _ s _) <- get
   case s of
-    [] -> throwError "Empty stack"
+    [] -> reportError "topOfStack: Empty stack"
     (x:_) -> return x
+
+reportError :: String -> MachineT a
+reportError e = do
+  m <- get
+  let pc = getPointer m
+  throwError $ "VM Error (" ++ show pc ++ "): " ++ e
 
 getBinOp :: OP -> MachineT (Int -> Int -> Int)
 getBinOp ADD = return (+)

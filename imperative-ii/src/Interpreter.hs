@@ -1,4 +1,6 @@
-module Interpreter where
+module Interpreter
+  ( exec
+  ) where
 
 import Prelude hiding (lookup)
 import Parser
