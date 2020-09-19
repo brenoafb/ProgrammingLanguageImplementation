@@ -13,8 +13,10 @@ type Index = Int
 data OP = PUSH Int     -- push integer onto stack
         | LOAD Index   -- load register value to stack
         | STORE Index  -- store top of stack in register at index
-        | GOTO Index   -- goto index unconditionally
-        | BZ Index     -- branch if top of stack is zero
+        | GOTO Index   -- goto pc + index unconditionally
+        | BZ Index     -- branch to pc + index if top of stack is zero
+        | LOADPC       -- load PC + 2 onto the stack
+        | STOREPC      -- store top of stack onto PC
         | HALT
         | ADD
         | SUB
@@ -86,6 +88,16 @@ executeSingle (BZ i) = do
   if x == 0
      then modify (incrementPointer i)
      else modify (incrementPointer 1)
+
+executeSingle LOADPC = do
+  m <- get
+  let pc = getPointer m
+  modify (pushStack $ pc + 2)
+  modify (incrementPointer 1)
+
+executeSingle STOREPC = do
+  pc <- popStack
+  modify $ setPointer pc
 
 executeSingle NEG = do
   x <- popStack
