@@ -13,8 +13,6 @@ import Control.Monad.State
 import Control.Monad.Except
 import qualified Data.Map as Map
 
-import Debug.Trace (trace)
-
 -- a VarTable contains an assignment of each variable used in the function
 -- to a register index in the machine.
 -- Each function has its VarTable
@@ -160,7 +158,7 @@ restoreRegs = do
 
 storeArgs :: [String] -> CompileT VarTable PPCode
 storeArgs args = do
-  t <- trace (show args) $ ask
+  t <- ask
   case traverse (`Map.lookup` t) args of
     Nothing -> throwError "Error obtaining function arguments"
     Just regs -> return $ map (Right . STORE) $ reverse regs
