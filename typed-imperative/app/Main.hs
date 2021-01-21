@@ -3,6 +3,7 @@ module Main where
 import Parser
 import Typechecker
 import Interpreter
+import Optimizer
 import Text.Pretty.Simple (pPrint)
 import System.Environment
 
@@ -18,12 +19,13 @@ main = do
 executeProgram :: FilePath -> IO ()
 executeProgram file = do
   code <- readFile file
-  let program = parseStr code
+  let program = optimize $ parseStr code
       typechecks = typecheck program
   case typecheck program of
     Just err -> putStrLn $ "Type check error: " ++ err
     Nothing -> do
       putStrLn "type check succeeded"
+      pPrint program
       let eval = runProgram program
       case eval of
         Left err -> putStrLn $ "Interpreter error: " ++ err

@@ -1,56 +1,11 @@
 module Parser where
 
+import Syntax
 import Control.Monad
 import Text.ParserCombinators.Parsec
 import Text.ParserCombinators.Parsec.Expr
 import Text.ParserCombinators.Parsec.Language
 import qualified Text.ParserCombinators.Parsec.Token as Token
-
-type Program = [Function]
-
-data Function = Function String [(Type, String)] Type Stmt
-  deriving Show
-
-data Type = IntT
-          | StrT
-          | BoolT
-          | VoidT
-          deriving (Eq, Show)
-
-data Expr = Num Int
-          | Var String
-          | Str String
-          | ETrue
-          | EFalse
-          | FunCall String [Expr]
-          | RelOp { relOp :: RelOp, e1 :: Expr, e2 :: Expr}
-          | UnOp  { unOp :: UnOp, e1 :: Expr }
-          | BinOp { binOp :: BinOp, e1 :: Expr, e2 :: Expr}
-          deriving Show
-
-data UnOp = Neg | Not
-  deriving (Eq, Show)
-
-data RelOp = Eq | NEq | Gt | Lt | LtEq | GtEq
-  deriving (Eq, Show)
-
-data BinOp = Add
-           | Sub
-           | Mult
-           | Div
-           | And
-           | Or
-           | Concat
-  deriving (Eq, Show)
-
-data Stmt = Decl Type String
-          | Assn String Expr
-          | If Expr Stmt
-          | IfElse Expr Stmt Stmt
-          | Block [Stmt]
-          | While Expr Stmt
-          | Return Expr
-          deriving Show
 
 languageDef =
   emptyDef { Token.commentStart    = "/*"

@@ -2,6 +2,7 @@ module Interpreter
   ( runProgram
   ) where
 
+import Syntax
 import Parser
 import Control.Monad.Reader
 import Control.Monad.State

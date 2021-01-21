@@ -2,7 +2,7 @@ module Typechecker
   ( typecheck
   ) where
 
-import Parser
+import Syntax
 import Control.Monad.Reader
 import Control.Monad.State
 import Control.Monad.Except

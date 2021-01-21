@@ -26,6 +26,7 @@ dependencies:
 - pretty-simple
 - mtl
 - containers
+- syb
 
 library:
   source-dirs: src
