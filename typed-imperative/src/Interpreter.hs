@@ -9,18 +9,18 @@ import Control.Monad.Reader
 import Control.Monad.State
 import Control.Monad.Except
 import qualified Data.Map as M
-import qualified Data.Text as T
+import qualified Data.ByteString as B
 
 data Value = IntV Int
-           | StrV T.Text
+           | StrV B.ByteString
            | BoolV Bool
            | VoidV
            deriving (Eq, Show)
 
-type Frame = M.Map T.Text Value
+type Frame = M.Map B.ByteString Value
 type Env = [Frame]
 
-type Error = T.Text
+type Error = B.ByteString
 
 type Eval a = ExceptT Error (ReaderT Program (State Env)) a
 
@@ -28,7 +28,7 @@ runProgram :: Program -> Either Error Env
 runProgram program = evalState (runReaderT (runExceptT exec) program) env
   where env = [M.empty]
 
-funcLookup :: T.Text -> Eval Function
+funcLookup :: B.ByteString -> Eval Function
 funcLookup name = do
   functions <- ask
   case filter (\(Function name' args retType body) -> name == name') functions of
@@ -153,7 +153,7 @@ eval (BinOp op e1 e2) = do
     (op, StrV s1, StrV s2) | strOp op -> return $ binOpFunc op (StrV s1) (StrV s2)
     _ -> throwError "Invalid binary operation"
 
-insertVar :: T.Text -> Type -> Env -> Env
+insertVar :: B.ByteString -> Type -> Env -> Env
 insertVar var typ (frame:frames) = M.insert var (defaultVal typ) frame : frames
 
 defaultVal :: Type -> Value

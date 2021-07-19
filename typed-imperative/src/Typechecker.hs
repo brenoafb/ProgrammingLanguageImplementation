@@ -9,19 +9,19 @@ import Control.Monad.Reader
 import Control.Monad.State
 import Control.Monad.Except
 import qualified Data.Map as M
-import qualified Data.Text as T
+import qualified Data.ByteString as B
 
-type Error = T.Text
+type Error = B.ByteString
 
-type TypeC a = ExceptT Error (ReaderT T.Text (State TypeEnv)) a
+type TypeC a = ExceptT Error (ReaderT B.ByteString (State TypeEnv)) a
 
-type TypeEnv = M.Map T.Text TypeInfo
+type TypeEnv = M.Map B.ByteString TypeInfo
 
 data TypeInfo = VarT { varType :: Type }
               | FuncT { argTypes :: [Type], retType :: Type }
               deriving (Eq, Show)
 
-typecheck :: Program -> Maybe T.Text
+typecheck :: Program -> Maybe B.ByteString
 typecheck funcs = go funcs
   where env = M.fromList (map funcTypeInfo funcs)
         go [] = Nothing
@@ -31,11 +31,11 @@ typecheck funcs = go funcs
             Left err -> Just err
             Right () -> Nothing
 
-getFuncEnv :: TypeEnv -> [(Type, T.Text)] -> TypeEnv
+getFuncEnv :: TypeEnv -> [(Type, B.ByteString)] -> TypeEnv
 getFuncEnv = foldr (\(typ, arg) acc -> M.insert arg (VarT typ) acc)
 
 
-funcTypeInfo :: Function -> (T.Text, TypeInfo)
+funcTypeInfo :: Function -> (B.ByteString, TypeInfo)
 funcTypeInfo (Function name args retType body) = (name, FuncT argTypes retType)
   where argTypes = map fst args
 

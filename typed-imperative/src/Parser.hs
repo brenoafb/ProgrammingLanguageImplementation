@@ -2,15 +2,16 @@
 module Parser where
 
 import Control.Monad
-import qualified Data.Text as T
 import Text.ParserCombinators.Parsec
 import Text.ParserCombinators.Parsec.Expr
 import Text.ParserCombinators.Parsec.Language
 import qualified Text.ParserCombinators.Parsec.Token as Token
+import qualified Data.ByteString as B
+import Data.String (fromString)
 
 type Program = [Function]
 
-data Function = Function T.Text [(Type, T.Text)] Type Stmt
+data Function = Function B.ByteString [(Type, B.ByteString)] Type Stmt
   deriving Show
 
 data Type = IntT
@@ -20,11 +21,11 @@ data Type = IntT
           deriving (Eq, Show)
 
 data Expr = Num Int
-          | Var T.Text
-          | Str T.Text
+          | Var B.ByteString
+          | Str B.ByteString
           | ETrue
           | EFalse
-          | FunCall T.Text [Expr]
+          | FunCall B.ByteString [Expr]
           | RelOp { relOp :: RelOp, e1 :: Expr, e2 :: Expr}
           | UnOp  { unOp :: UnOp, e1 :: Expr }
           | BinOp { binOp :: BinOp, e1 :: Expr, e2 :: Expr}
@@ -45,8 +46,8 @@ data BinOp = Add
            | Concat
   deriving (Eq, Show)
 
-data Stmt = Decl Type T.Text
-          | Assn T.Text Expr
+data Stmt = Decl Type B.ByteString
+          | Assn B.ByteString Expr
           | If Expr Stmt
           | IfElse Expr Stmt Stmt
           | Block [Stmt]
@@ -79,7 +80,7 @@ languageDef =
 
 lexer = Token.makeTokenParser languageDef
 
-identifier = T.pack <$> Token.identifier lexer
+identifier = fromString <$> Token.identifier lexer
 reserved = Token.reserved lexer
 reservedOp = Token.reservedOp lexer
 parens = Token.parens lexer
@@ -88,7 +89,7 @@ semi = Token.semi lexer
 whiteSpace = Token.whiteSpace lexer
 braces = Token.braces lexer
 comma = Token.comma lexer
-stringLiteral = T.pack <$> Token.stringLiteral lexer
+stringLiteral = fromString <$> Token.stringLiteral lexer
 
 parseStr :: String -> Program
 parseStr str = case parse program "" str of
