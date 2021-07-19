@@ -1,10 +1,10 @@
 cabal-version: 1.12
 
--- This file has been generated from package.yaml by hpack version 0.33.0.
+-- This file has been generated from package.yaml by hpack version 0.34.4.
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: e73dfc7aa02b1b0f8d36aa555c548055c4dc2d4cb52fc69ee326d06c5f123c0d
+-- hash: c69f8c744d9f541eca9f57d268c0eba805b477985b3939204abf0da73bc40c06
 
 name:           typed-imperative
 version:        0.1.0.0
@@ -27,10 +27,13 @@ source-repository head
 
 library
   exposed-modules:
+      Bytecode
+      Compiler
       Interpreter
       Lib
       Parser
       Typechecker
+      VM
   other-modules:
       Paths_typed_imperative
   hs-source-dirs:

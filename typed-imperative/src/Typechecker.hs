@@ -1,3 +1,5 @@
+{-# LANGUAGE OverloadedStrings #-}
+
 module Typechecker
   ( typecheck
   ) where
@@ -7,18 +9,19 @@ import Control.Monad.Reader
 import Control.Monad.State
 import Control.Monad.Except
 import qualified Data.Map as M
+import qualified Data.Text as T
 
-type Error = String
+type Error = T.Text
 
-type TypeC a = ExceptT Error (ReaderT String (State TypeEnv)) a
+type TypeC a = ExceptT Error (ReaderT T.Text (State TypeEnv)) a
 
-type TypeEnv = M.Map String TypeInfo
+type TypeEnv = M.Map T.Text TypeInfo
 
 data TypeInfo = VarT { varType :: Type }
               | FuncT { argTypes :: [Type], retType :: Type }
               deriving (Eq, Show)
 
-typecheck :: Program -> Maybe String
+typecheck :: Program -> Maybe T.Text
 typecheck funcs = go funcs
   where env = M.fromList (map funcTypeInfo funcs)
         go [] = Nothing
@@ -28,11 +31,11 @@ typecheck funcs = go funcs
             Left err -> Just err
             Right () -> Nothing
 
-getFuncEnv :: TypeEnv -> [(Type, String)] -> TypeEnv
+getFuncEnv :: TypeEnv -> [(Type, T.Text)] -> TypeEnv
 getFuncEnv = foldr (\(typ, arg) acc -> M.insert arg (VarT typ) acc)
 
 
-funcTypeInfo :: Function -> (String, TypeInfo)
+funcTypeInfo :: Function -> (T.Text, TypeInfo)
 funcTypeInfo (Function name args retType body) = (name, FuncT argTypes retType)
   where argTypes = map fst args
 
@@ -47,17 +50,17 @@ typecheckStmt (Decl typ var) = do
     Nothing -> do
       modify $ M.insert var (VarT typ)
       return ()
-    Just _ -> throwError $ "Redeclaring variable " ++ var
+    Just _ -> throwError $ "Redeclaring variable " <> var
 
 typecheckStmt (Assn var e) = do
   env <- get
   case M.lookup var env of
-    Nothing -> throwError $ "Variable " ++ var ++ " assigned but not declared"
+    Nothing -> throwError $ "Variable " <> var <> " assigned but not declared"
     Just typ -> do
       expType <- getType e
       if expType == typ
          then return ()
-         else throwError $ "Invalid assignment type for " ++ var
+         else throwError $ "Invalid assignment type for " <> var
 
 typecheckStmt (If cond conseq) = do
   condType <- getType cond
@@ -83,7 +86,7 @@ typecheckStmt (While cond body) = do
   condType <- getType cond
   case condType of
     VarT BoolT -> typecheckStmt body
-    _ -> throwError $ "error in while statement condition: " ++ funcName
+    _ -> throwError $ "error in while statement condition: " <> funcName
 
 typecheckStmt (Return e) = do
   funcName <- ask
@@ -93,15 +96,15 @@ typecheckStmt (Return e) = do
       exprType <- getType e
       case exprType of
         VarT exprType | exprType == retType -> return ()
-        VarT exprType | exprType /= retType -> throwError $ "Return type error for " ++ funcName
-    _ -> throwError $ "Invalid return: " ++ funcName
+        VarT exprType | exprType /= retType -> throwError $ "Return type error for " <> funcName
+    _ -> throwError $ "Invalid return: " <> funcName
 
 getType :: Expr -> TypeC TypeInfo
 getType (Num _) = return $ VarT IntT
 getType (Var s) = do
   env <- get
   case M.lookup s env of
-    Nothing -> throwError $ "Undeclared variable " ++ s
+    Nothing -> throwError $ "Undeclared variable " <> s
     Just typ -> return typ
 
 getType (Str s) = return $ VarT StrT
@@ -114,7 +117,7 @@ getType (FunCall s args) = do
       types <- mapM getType args -- types :: [TypeInfo]
       if map VarT argTypes == types
          then return $ VarT retType
-         else throwError $ "Error in function call for " ++ s
+         else throwError $ "Error in function call for " <> s
 getType (RelOp _ e1 e2) = do
   typ1 <- getType e1
   typ2 <- getType e2

@@ -1,3 +1,5 @@
+{-# LANGUAGE OverloadedStrings #-}
+
 module Interpreter
   ( runProgram
   ) where
@@ -7,17 +9,18 @@ import Control.Monad.Reader
 import Control.Monad.State
 import Control.Monad.Except
 import qualified Data.Map as M
+import qualified Data.Text as T
 
 data Value = IntV Int
-           | StrV String
+           | StrV T.Text
            | BoolV Bool
            | VoidV
            deriving (Eq, Show)
 
-type Frame = M.Map String Value
+type Frame = M.Map T.Text Value
 type Env = [Frame]
 
-type Error = String
+type Error = T.Text
 
 type Eval a = ExceptT Error (ReaderT Program (State Env)) a
 
@@ -25,12 +28,12 @@ runProgram :: Program -> Either Error Env
 runProgram program = evalState (runReaderT (runExceptT exec) program) env
   where env = [M.empty]
 
-funcLookup :: String -> Eval Function
+funcLookup :: T.Text -> Eval Function
 funcLookup name = do
   functions <- ask
   case filter (\(Function name' args retType body) -> name == name') functions of
     [func] -> return func
-    _ -> throwError $ "Could not find function " ++ name
+    _ -> throwError $ "Could not find function " <> name
 
 exec :: Eval Env
 exec = do
@@ -50,7 +53,7 @@ execStmt (Assn var expr) = do
         val <- eval expr
         modify $ \(frame:frames) -> M.insert var val frame : frames
         get
-      else throwError $ "Undeclared variable " ++ var
+      else throwError $ "Undeclared variable " <> var
     [] -> throwError "Invalid environment: empty stack"
 
 execStmt (If cond conseq) = do
@@ -100,7 +103,7 @@ eval (Var var) = do
   env <- get
   case env of
     (frame:_) -> case M.lookup var frame of
-      Nothing -> throwError $ "Undeclared variable " ++ var
+      Nothing -> throwError $ "Undeclared variable " <> var
       Just x -> return x
     [] -> throwError "Empty stack"
 
@@ -150,7 +153,7 @@ eval (BinOp op e1 e2) = do
     (op, StrV s1, StrV s2) | strOp op -> return $ binOpFunc op (StrV s1) (StrV s2)
     _ -> throwError "Invalid binary operation"
 
-insertVar :: String -> Type -> Env -> Env
+insertVar :: T.Text -> Type -> Env -> Env
 insertVar var typ (frame:frames) = M.insert var (defaultVal typ) frame : frames
 
 defaultVal :: Type -> Value
@@ -192,4 +195,4 @@ binOpFunc Mult (IntV x1) (IntV x2) = IntV $ x1 * x2
 binOpFunc Div (IntV x1) (IntV x2) = IntV $ x1 `div` x2
 binOpFunc And (BoolV x1) (BoolV x2) = BoolV $ x1 && x2
 binOpFunc Or (BoolV x1) (BoolV x2) = BoolV $ x1 || x2
-binOpFunc Concat (StrV x1) (StrV x2) = StrV $ x1 ++ x2
+binOpFunc Concat (StrV x1) (StrV x2) = StrV $ x1 <> x2

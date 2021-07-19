@@ -1,6 +1,8 @@
+{-# LANGUAGE OverloadedStrings #-}
 module Parser where
 
 import Control.Monad
+import qualified Data.Text as T
 import Text.ParserCombinators.Parsec
 import Text.ParserCombinators.Parsec.Expr
 import Text.ParserCombinators.Parsec.Language
@@ -8,7 +10,7 @@ import qualified Text.ParserCombinators.Parsec.Token as Token
 
 type Program = [Function]
 
-data Function = Function String [(Type, String)] Type Stmt
+data Function = Function T.Text [(Type, T.Text)] Type Stmt
   deriving Show
 
 data Type = IntT
@@ -18,11 +20,11 @@ data Type = IntT
           deriving (Eq, Show)
 
 data Expr = Num Int
-          | Var String
-          | Str String
+          | Var T.Text
+          | Str T.Text
           | ETrue
           | EFalse
-          | FunCall String [Expr]
+          | FunCall T.Text [Expr]
           | RelOp { relOp :: RelOp, e1 :: Expr, e2 :: Expr}
           | UnOp  { unOp :: UnOp, e1 :: Expr }
           | BinOp { binOp :: BinOp, e1 :: Expr, e2 :: Expr}
@@ -43,8 +45,8 @@ data BinOp = Add
            | Concat
   deriving (Eq, Show)
 
-data Stmt = Decl Type String
-          | Assn String Expr
+data Stmt = Decl Type T.Text
+          | Assn T.Text Expr
           | If Expr Stmt
           | IfElse Expr Stmt Stmt
           | Block [Stmt]
@@ -77,7 +79,7 @@ languageDef =
 
 lexer = Token.makeTokenParser languageDef
 
-identifier = Token.identifier lexer
+identifier = T.pack <$> Token.identifier lexer
 reserved = Token.reserved lexer
 reservedOp = Token.reservedOp lexer
 parens = Token.parens lexer
@@ -86,7 +88,7 @@ semi = Token.semi lexer
 whiteSpace = Token.whiteSpace lexer
 braces = Token.braces lexer
 comma = Token.comma lexer
-stringLiteral = Token.stringLiteral lexer
+stringLiteral = T.pack <$> Token.stringLiteral lexer
 
 parseStr :: String -> Program
 parseStr str = case parse program "" str of

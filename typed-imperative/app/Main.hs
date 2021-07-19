@@ -1,3 +1,5 @@
+{-# LANGUAGE OverloadedStrings #-}
+
 module Main where
 
 import Parser
@@ -5,6 +7,8 @@ import Typechecker
 import Interpreter
 import Text.Pretty.Simple (pPrint)
 import System.Environment
+import qualified Data.Text as T
+import qualified Data.Text.IO as T
 
 main :: IO ()
 main = do
@@ -21,12 +25,12 @@ executeProgram file = do
   let program = parseStr code
       typechecks = typecheck program
   case typecheck program of
-    Just err -> putStrLn $ "Type check error: " ++ err
+    Just err -> T.putStrLn $ "Type check error: " <> err
     Nothing -> do
-      putStrLn "type check succeeded"
+      T.putStrLn "type check succeeded"
       let eval = runProgram program
       case eval of
-        Left err -> putStrLn $ "Interpreter error: " ++ err
+        Left err -> T.putStrLn $ "Interpreter error: " <> err
         Right env -> print env
 
 typecheckProgram :: FilePath -> IO ()
@@ -35,7 +39,7 @@ typecheckProgram file = do
   let program = parseStr code
       typechecks = typecheck program
   case typecheck program of
-    Just err -> putStrLn $ "Type check error: " ++ err
+    Just err -> T.putStrLn $ "Type check error: " <> err
     Nothing -> return ()
 
 printAST :: FilePath -> IO ()
