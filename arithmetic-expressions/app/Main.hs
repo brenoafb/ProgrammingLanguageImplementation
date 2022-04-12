@@ -8,14 +8,12 @@ import Machine
 import System.IO ( isEOF )
 import System.Environment ( getArgs )
 
-data CompilerMode = File | Interactive
-
 main :: IO ()
 main = do
   args <- getArgs
   case args of
-    ["-c", fileName] -> compiler File $ Just fileName
-    ["-c"] -> compiler Interactive Nothing
+    ["-c", fileName] -> compiler fileName
+    ["-v", fileName] -> vm fileName
     [] -> repl
     _ -> usage
 
@@ -29,16 +27,16 @@ interactive handler = do
          Left e -> print e >> interactive handler
          Right expr -> handler expr >> interactive handler
 
-compiler :: CompilerMode -> Maybe FilePath -> IO ()
-compiler Interactive Nothing = interactive handler
-  where handler expr = let program = compile expr
-                           result = execute [] program
-                       in do
-                         printList program
-                         putStrLn ""
-                         print result
+compiler :: FilePath -> IO ()
+compiler fp = do
+  code <- readFile fp
+  case parseString code of
+    Left err -> print err
+    Right expr -> do
+      compileASM expr
 
-compiler File (Just fp) = do
+vm :: FilePath -> IO ()
+vm fp = do
   code <- readFile fp
   case parseString code of
     Left err -> print err
@@ -48,8 +46,6 @@ compiler File (Just fp) = do
       printList program
       putStrLn ""
       print result
-
-compiler _ _ = return ()
 
 repl = interactive handler
   where handler expr = case eval expr of
